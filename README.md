@@ -1,2 +1,2 @@
 # tldr
-Chrome plugin that communicate with openai
+Chrome plugin that communicates with openai
