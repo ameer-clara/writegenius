@@ -1,0 +1,34 @@
+{
+    "manifest_version": 3,
+    "name": "OpenAI Chrome Extension",
+    "version": "1.0",
+    "description": "Select text, send it to OpenAI, and display the result in a floating window.",
+    "permissions": [
+        "contextMenus",
+        "activeTab"
+    ],
+    "action": {
+        "default_icon": {
+            "16": "assets/search.png"
+        }
+    },
+    "icons": {
+        "16": "assets/search.png"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content-script.js"
+            ],
+            "css": [
+                "styles.css"
+            ]
+        }
+    ]
+}
