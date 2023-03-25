@@ -1,14 +1,32 @@
-chrome.runtime.onInstalled.addListener(function () {
+chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id: 'rephrase-with-chatgpt',
-    title: 'Reprhase with ChatGPT',
+    id: 'chrome-chatgpt',
+    title: 'ChatGPT',
+    contexts: ['selection'],
+  });
+
+  chrome.contextMenus.create({
+    parentId: 'chrome-chatgpt',
+    id: '',
+    title: 'Prompt',
+    contexts: ['selection'],
+  });
+
+  chrome.contextMenus.create({
+    parentId: 'chrome-chatgpt',
+    id: 'rephrase:',
+    title: 'Reprhase',
+    contexts: ['selection'],
+  });
+
+  chrome.contextMenus.create({
+    parentId: 'chrome-chatgpt',
+    id: 'rephrase with British humor:',
+    title: 'Reprhase (funny)',
     contexts: ['selection'],
   });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tabs) => {
-  console.log('context menu clicked');
-  console.log(info);
-  console.log(tabs);
-  chrome.tabs.sendMessage(tabs.id, info.selectionText);
+  chrome.tabs.sendMessage(tabs.id, info);
 });
