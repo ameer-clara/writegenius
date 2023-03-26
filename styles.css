@@ -6,3 +6,45 @@
   padding: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
+.openai-generated-text {
+  font-weight: bold;
+}
+
+.openai-floating-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.2em;
+  padding-top: 5px;
+  border-top: 1px solid #ccc;
+  margin-top: 5px;
+}
+
+.openai-floating-close {
+  cursor: pointer;
+}
+
+.openai-floating-body {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding-right: 5px;
+}
+
+.api-key {
+  width: 400px;
+}
+
+.history-item {
+  background-color: #f0f0f0;
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 10px;
+  max-width: 80%;
+}
+
+.history-item:nth-child(odd) {
+  margin-left: auto;
+  background-color: #e0e0e0;
+}

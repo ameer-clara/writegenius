@@ -1,20 +1,104 @@
-const OPENAI_API_KEY = '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';
 const OPEN_API_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 
 let storedRanges = null;
+let promptType = null;
+
+async function displayHistory() {
+  const db = await openDatabase();
+  const transaction = db.transaction('responses', 'readonly');
+  const responsesStore = transaction.objectStore('responses');
+  const getAllRequest = responsesStore.getAll();
+  let historyHtml = '';
+
+  return new Promise((resolve, reject) => {
+    getAllRequest.onsuccess = () => {
+      const responses = getAllRequest.result;
+      responses.sort((a, b) => b.timestamp - a.timestamp); // Sort in reverse chronological order
+
+      responses.forEach((response) => {
+        const timestamp = new Date(response.timestamp).toLocaleString();
+        historyHtml += `<div class="history-item">
+                          <p><strong>Prompt Type:</strong> ${response.promptType}</p>
+                          <p><strong>Prompt:</strong> ${response.prompt}</p>
+                          <p><strong>Response:</strong> ${response.response}</p>
+                          <p><strong>Timestamp:</strong> ${timestamp}</p>
+                        </div>`;
+      });
+
+      resolve(historyHtml);
+    };
+  });
+}
+
+async function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const openRequest = indexedDB.open('openai_responses', 1);
+
+    openRequest.onupgradeneeded = () => {
+      const db = openRequest.result;
+      db.createObjectStore('responses', { keyPath: 'id', autoIncrement: true });
+    };
+
+    openRequest.onsuccess = () => {
+      resolve(openRequest.result);
+    };
+
+    openRequest.onerror = () => {
+      reject(openRequest.error);
+    };
+  });
+}
+
+async function getAPIKey() {
+  try {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get('apiKey', (data) => {
+        resolve(data.apiKey);
+      });
+    });
+  } catch (error) {
+    alert('Please add an API key to use the extension.');
+  }
+}
+
+async function saveResponse(promptText, selectedPromptType, responseText) {
+  const db = await openDatabase();
+  const transaction = db.transaction('responses', 'readwrite');
+  const responsesStore = transaction.objectStore('responses');
+  const responseObj = {
+    prompt: promptText,
+    promptType: selectedPromptType,
+    response: responseText,
+    timestamp: new Date(),
+  };
+
+  return new Promise((resolve, reject) => {
+    const saveRequest = responsesStore.add(responseObj);
+
+    saveRequest.onsuccess = () => {
+      resolve(saveRequest.result);
+    };
+
+    saveRequest.onerror = () => {
+      reject(saveRequest.error);
+    };
+  });
+}
 
 function createFloatingWindow(content) {
   const floatingWindow = document.createElement('div');
   floatingWindow.classList.add('openai-floating-window');
   floatingWindow.innerHTML = `
-  <div class="openai-floating-header">
-    <span class="openai-floating-close">x</span>
-  </div>
   <div class="openai-floating-body">
     <div class="openai-generated-text">${content}</div>
-    <button id="openai-floating-replace">Replace Selected Text</button>
+  </div>
+  <div class="openai-floating-header">
+    <span>${!promptType.includes('summarize') ? "<button id='openai-floating-replace'>Replace Selected Text</button>" : ''}
+    </span>
+    <span class="openai-floating-close">x</span>
   </div>
   `;
+
   document.body.appendChild(floatingWindow);
 
   const closeIcon = floatingWindow.querySelector('.openai-floating-close');
@@ -22,7 +106,7 @@ function createFloatingWindow(content) {
     removeFloatingWindow(floatingWindow);
   });
 
-  const body = floatingWindow.querySelector('.openai-floating-body');
+  const body = floatingWindow.querySelector('.openai-floating-header');
   let initialMousePosition = null;
   let initialFloatingWindowPosition = null;
   let isDragging = false;
@@ -49,50 +133,59 @@ function createFloatingWindow(content) {
   });
 
   const replaceButton = floatingWindow.querySelector('#openai-floating-replace');
-  console.log('replace button clicked before: ' + storedRanges);
 
-  replaceButton.addEventListener('click', () => {
-    if (storedRanges) {
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      storedRanges.forEach((range) => selection.addRange(range));
+  if (!promptType.includes('summarize')) {
+    replaceButton.addEventListener('click', () => {
+      if (storedRanges) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        storedRanges.forEach((range) => selection.addRange(range));
 
-      const range = selection.getRangeAt(0);
+        const range = selection.getRangeAt(0);
 
-      // Save the current caret position
-      const savedCaretPosition = document.createElement('span');
-      savedCaretPosition.id = 'saved-caret-position';
-      range.insertNode(savedCaretPosition);
+        // Save the current caret position
+        const savedCaretPosition = document.createElement('span');
+        savedCaretPosition.id = 'saved-caret-position';
+        range.insertNode(savedCaretPosition);
 
-      // Replace the selected text
-      range.setStartAfter(savedCaretPosition);
-      range.deleteContents();
+        // Replace the selected text
+        range.setStartAfter(savedCaretPosition);
+        range.deleteContents();
 
-      const generatedContent = floatingWindow.querySelector('.openai-generated-text');
-      const tempContainer = document.createElement('div');
-      tempContainer.innerHTML = generatedContent.innerHTML;
-      while (tempContainer.firstChild) {
-        range.insertNode(tempContainer.firstChild);
+        // Insert HTML content
+        const generatedContent = floatingWindow.querySelector('.openai-generated-text');
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = generatedContent.innerHTML;
+        let lastInsertedNode = null;
+
+        // Create a document fragment to insert nodes in the correct order
+        const fragment = document.createDocumentFragment();
+        while (tempContainer.firstChild) {
+          lastInsertedNode = tempContainer.firstChild;
+          fragment.appendChild(lastInsertedNode);
+        }
+
+        range.insertNode(fragment);
+
+        // Restore the caret position
+        if (lastInsertedNode) {
+          const newCaretPosition = document.createRange();
+          newCaretPosition.setStartAfter(lastInsertedNode);
+          newCaretPosition.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newCaretPosition);
+        }
+
+        // Remove the saved caret position span
+        savedCaretPosition.remove();
+
+        // Reset the stored range information
+        storedRanges = null;
       }
-
-      // Restore the caret position
-      const caretPosition = document.getElementById('saved-caret-position');
-      const newCaretPosition = document.createRange();
-      newCaretPosition.setStartAfter(caretPosition);
-      newCaretPosition.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(newCaretPosition);
-
-      // Remove the saved caret position span
-      caretPosition.remove();
-
-      // Reset the stored range information
-      storedRanges = null;
-    }
-
-    // Remove the floating window
-    removeFloatingWindow(floatingWindow);
-  });
+      // Remove the floating window
+      removeFloatingWindow(floatingWindow);
+    });
+  }
 
   return floatingWindow;
 }
@@ -110,12 +203,12 @@ function formatResponseToHtml(text) {
   return text.replace(/\n/g, '<br>');
 }
 
-async function processTextWithOpenAI(text, selectedPromptType) {
-  console.log('calling openai: ' + text + ' ' + selectedPromptType);
+async function processTextWithOpenAI(apiKey, text, selectedPromptType) {
+  console.log('calling openai: ' + selectedPromptType + text);
   const response = await fetch(OPEN_API_ENDPOINT, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -125,23 +218,60 @@ async function processTextWithOpenAI(text, selectedPromptType) {
     }),
   });
 
-  const data = await response.json();
-  console.log('got response: ', data);
-  return data.choices[0].message.content; // Return the generated text
+  const data = await response.json(); // Return the generated text
+  const result = data.choices[0].message.content;
+  console.log('response: ', data);
+
+  // Save the response along with the prompt text and timestamp
+  await saveResponse(text, selectedPromptType, result);
+
+  return result;
 }
 
-chrome.runtime.onMessage.addListener(async (message) => {
-  const result = await processTextWithOpenAI(message.selectionText, message.menuItemId);
+// Content script code
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'getHistory') {
+    (async () => {
+      try {
+        const historyHtml = await displayHistory();
+        sendResponse({ success: true, historyHtml });
+      } catch (error) {
+        console.error('Error displaying history:', error);
+        sendResponse({ success: false, error });
+      }
+    })();
 
-  const selection = window.getSelection();
-  storedRanges = [];
-  for (let i = 0; i < selection.rangeCount; i++) {
-    storedRanges.push(selection.getRangeAt(i));
+    // This is important to keep the message channel open for async sendResponse
+    return true;
   }
 
-  const formattedResult = formatResponseToHtml(result);
-  const floatingWindow = createFloatingWindow(formattedResult);
-  const { x, y } = storedRanges[0].getBoundingClientRect();
-  positionFloatingWindow(floatingWindow, x, y + 25);
-  setTimeout(() => removeFloatingWindow(floatingWindow), 15000);
+  if (request.type === 'contextMenu') {
+    (async () => {
+      try {
+        const apiKey = await getAPIKey();
+        if (!apiKey) {
+          alert('Please set the OpenAI API key in the extension popup.');
+          return;
+        }
+        const result = await processTextWithOpenAI(apiKey, request.selectionText, request.menuItemId);
+        promptType = request.menuItemId;
+        // const result = 'test';
+        const selection = window.getSelection();
+        storedRanges = [];
+        for (let i = 0; i < selection.rangeCount; i++) {
+          storedRanges.push(selection.getRangeAt(i));
+        }
+        const formattedResult = formatResponseToHtml(result);
+        const floatingWindow = createFloatingWindow(formattedResult);
+        const { x, y } = storedRanges[0].getBoundingClientRect();
+        positionFloatingWindow(floatingWindow, x, y + 25);
+      } catch (error) {
+        const floatingWindow = createFloatingWindow(error);
+        const { x, y } = storedRanges[0].getBoundingClientRect();
+        positionFloatingWindow(floatingWindow, x, y + 25);
+        console.error('Error displaying history:', error);
+        // sendResponse({ success: false, error });
+      }
+    })();
+  }
 });

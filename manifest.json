@@ -5,9 +5,12 @@
     "description": "Select text, send it to OpenAI, and display the result in a floating window.",
     "permissions": [
         "contextMenus",
-        "activeTab"
+        "activeTab",
+        "storage",
+        "tabs"
     ],
     "action": {
+        "default_popup": "popup.html",
         "default_icon": {
             "16": "assets/search.png"
         }
