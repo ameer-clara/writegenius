@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Settings</title>
+</head>
+
+<body>
+    <h1>Settings</h1>
+    <div class="settings-container">
+        <div>
+            <label for="model">Model:</label>
+            <select id="model">
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
+            </select>
+        </div>
+        <div>
+            <label for="temperature">Temperature:</label>
+            <input type="range" id="temperature" min="0" max="1" step="0.01" value="0.7">
+            <input type="number" id="temperature-number" min="0" max="1" step="0.01" value="0.7">
+        </div>
+        <div>
+            <label for="max-length">Maximum length:</label>
+            <input type="range" id="max-length" min="1" max="2048" step="1" value="256">
+            <input type="number" id="max-length-number" min="1" max="2048" step="1" value="256">
+        </div>
+        <div>
+            <label for="top-p">Top P:</label>
+            <input type="range" id="top-p" min="0" max="1" step="0.01" value="1">
+            <input type="number" id="top-p-number" min="0" max="1" step="0.01" value="1">
+        </div>
+        <div>
+            <label for="frequency-penalty">Frequency penalty:</label>
+            <input type="range" id="frequency-penalty" min="0" max="2" step="0.01" value="0">
+            <input type="number" id="frequency-penalty-number" min="0" max="2" step="0.01" value="0">
+        </div>
+        <div>
+            <label for="presence-penalty">Presence penalty:</label>
+            <input type="range" id="presence-penalty" min="0" max="2" step="0.01" value="0">
+            <input type="number" id="presence-penalty-number" min="0" max="2" step="0.01" value="0">
+        </div>
+        <div>
+            <label for="api-key">OpenAI API Key:</label>
+            <input class="api-key" type="text" id="api-key">
+        </div>
+        <button id="save-settings">Save Settings</button>
+    </div>
+    <script src="settings.js"></script>
+</body>
+
+</html>

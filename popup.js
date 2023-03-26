@@ -6,11 +6,16 @@ function saveAPIKey(apiKey) {
   });
 }
 
-document.getElementById('save-api-key').addEventListener('click', () => {
-  const apiKey = document.getElementById('api-key').value;
-  saveAPIKey(apiKey).then(() => {
-    alert('API Key saved successfully.');
-  });
+// document.getElementById('save-api-key').addEventListener('click', () => {
+//   const apiKey = document.getElementById('api-key').value;
+//   saveAPIKey(apiKey).then(() => {
+//     alert('API Key saved successfully.');
+//   });
+// });
+
+// Add this code to the popup.js
+document.getElementById('open-settings').addEventListener('click', () => {
+  chrome.runtime.openOptionsPage();
 });
 
 document.getElementById('view-history-btn').addEventListener('click', () => {

@@ -9,6 +9,7 @@
         "storage",
         "tabs"
     ],
+    "options_page": "settings.html",
     "action": {
         "default_popup": "popup.html",
         "default_icon": {

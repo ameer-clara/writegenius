@@ -48,3 +48,17 @@
   margin-left: auto;
   background-color: #e0e0e0;
 }
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+button {
+  cursor: pointer;
+}

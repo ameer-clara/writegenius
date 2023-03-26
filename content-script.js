@@ -22,6 +22,7 @@ async function displayHistory() {
                           <p><strong>Prompt:</strong> ${response.prompt}</p>
                           <p><strong>Response:</strong> ${response.response}</p>
                           <p><strong>Timestamp:</strong> ${timestamp}</p>
+                          <p><strong>Model:</strong> ${response.model} | <strong>Temperature:</strong> ${response.temperature} | <strong>Max Tokens:</strong> ${response.maxLength} | <strong>Top P:</strong> ${response.topP} | <strong>Frequency penalty:</strong> ${response.frequencyPenalty} | <strong>Presence penalty:</strong> ${response.presencePenalty} |  </p>
                         </div>`;
       });
 
@@ -49,23 +50,40 @@ async function openDatabase() {
   });
 }
 
-async function getAPIKey() {
+function loadSettings() {
   try {
     return new Promise((resolve) => {
-      chrome.storage.sync.get('apiKey', (data) => {
-        resolve(data.apiKey);
-      });
+      chrome.storage.sync.get(
+        {
+          model: 'gpt-3.5-turbo',
+          apiKey: '',
+          temperature: 0.7,
+          maxLength: 256,
+          topP: 1,
+          frequencyPenalty: 0,
+          presencePenalty: 0,
+        },
+        (settings) => {
+          resolve(settings);
+        }
+      );
     });
   } catch (error) {
-    alert('Please add an API key to use the extension.');
+    alert('Cannot load settings. Please try again.');
   }
 }
 
-async function saveResponse(promptText, selectedPromptType, responseText) {
+async function saveResponse(promptText, selectedPromptType, responseText, model, temperature, maxLength, topP, frequencyPenalty, presencePenalty) {
   const db = await openDatabase();
   const transaction = db.transaction('responses', 'readwrite');
   const responsesStore = transaction.objectStore('responses');
   const responseObj = {
+    model: model,
+    temperature: temperature,
+    maxLength: maxLength,
+    topP: topP,
+    frequencyPenalty: frequencyPenalty,
+    presencePenalty: presencePenalty,
     prompt: promptText,
     promptType: selectedPromptType,
     response: responseText,
@@ -85,7 +103,7 @@ async function saveResponse(promptText, selectedPromptType, responseText) {
   });
 }
 
-function createFloatingWindow(content) {
+function createFloatingWindow(content, error = false) {
   const floatingWindow = document.createElement('div');
   floatingWindow.classList.add('openai-floating-window');
   floatingWindow.innerHTML = `
@@ -93,8 +111,7 @@ function createFloatingWindow(content) {
     <div class="openai-generated-text">${content}</div>
   </div>
   <div class="openai-floating-header">
-    <span>${!promptType.includes('summarize') ? "<button id='openai-floating-replace'>Replace Selected Text</button>" : ''}
-    </span>
+  <span>${error ? '' : "<button id='openai-floating-replace'>Replace Selected Text</button>"}
     <span class="openai-floating-close">x</span>
   </div>
   `;
@@ -105,7 +122,6 @@ function createFloatingWindow(content) {
   closeIcon.addEventListener('click', () => {
     removeFloatingWindow(floatingWindow);
   });
-
   const body = floatingWindow.querySelector('.openai-floating-header');
   let initialMousePosition = null;
   let initialFloatingWindowPosition = null;
@@ -132,9 +148,9 @@ function createFloatingWindow(content) {
     isDragging = false;
   });
 
-  const replaceButton = floatingWindow.querySelector('#openai-floating-replace');
+  if (!error) {
+    const replaceButton = floatingWindow.querySelector('#openai-floating-replace');
 
-  if (!promptType.includes('summarize')) {
     replaceButton.addEventListener('click', () => {
       if (storedRanges) {
         const selection = window.getSelection();
@@ -203,29 +219,41 @@ function formatResponseToHtml(text) {
   return text.replace(/\n/g, '<br>');
 }
 
-async function processTextWithOpenAI(apiKey, text, selectedPromptType) {
+async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, topP, frequencyPenalty, presencePenalty }, text, selectedPromptType) {
   console.log('calling openai: ' + selectedPromptType + text);
-  const response = await fetch(OPEN_API_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: selectedPromptType + text }],
-      max_tokens: 250,
-    }),
-  });
+  try {
+    const response = await fetch(OPEN_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: selectedPromptType + text }],
+        max_tokens: maxLength,
+        temperature,
+        top_p: topP,
+        presence_penalty: presencePenalty,
+        frequency_penalty: frequencyPenalty,
+      }),
+    });
 
-  const data = await response.json(); // Return the generated text
-  const result = data.choices[0].message.content;
-  console.log('response: ', data);
+    const data = await response.json(); // Return the generated text
+    if (data.error) {
+      throw data.error;
+    } else {
+      console.log('openai response: ', data);
+      const result = data.choices[0].message.content;
 
-  // Save the response along with the prompt text and timestamp
-  await saveResponse(text, selectedPromptType, result);
-
-  return result;
+      // Save the response along with the prompt text and timestamp
+      await saveResponse(text, selectedPromptType, result, model, temperature, maxLength, topP, frequencyPenalty, presencePenalty);
+      return result;
+    }
+  } catch (error) {
+    // console.error('Error calling OpenAI:', error);
+    throw error;
+  }
 }
 
 // Content script code
@@ -236,7 +264,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const historyHtml = await displayHistory();
         sendResponse({ success: true, historyHtml });
       } catch (error) {
-        console.error('Error displaying history:', error);
+        // console.error('Error displaying history:', error);
         sendResponse({ success: false, error });
       }
     })();
@@ -247,30 +275,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'contextMenu') {
     (async () => {
+      const selection = window.getSelection();
+      storedRanges = [];
+      for (let i = 0; i < selection.rangeCount; i++) {
+        storedRanges.push(selection.getRangeAt(i));
+      }
       try {
-        const apiKey = await getAPIKey();
-        if (!apiKey) {
-          alert('Please set the OpenAI API key in the extension popup.');
-          return;
-        }
-        const result = await processTextWithOpenAI(apiKey, request.selectionText, request.menuItemId);
+        const settings = await loadSettings();
+        // console.log('settings: ' + JSON.stringify(settings));
+        const result = await processTextWithOpenAI(settings, request.selectionText, request.menuItemId);
         promptType = request.menuItemId;
-        // const result = 'test';
-        const selection = window.getSelection();
-        storedRanges = [];
-        for (let i = 0; i < selection.rangeCount; i++) {
-          storedRanges.push(selection.getRangeAt(i));
-        }
         const formattedResult = formatResponseToHtml(result);
         const floatingWindow = createFloatingWindow(formattedResult);
         const { x, y } = storedRanges[0].getBoundingClientRect();
         positionFloatingWindow(floatingWindow, x, y + 25);
       } catch (error) {
-        const floatingWindow = createFloatingWindow(error);
+        if (typeof error === 'object') {
+          error = JSON.stringify(error);
+        }
+        const floatingWindow = createFloatingWindow(error, true);
         const { x, y } = storedRanges[0].getBoundingClientRect();
         positionFloatingWindow(floatingWindow, x, y + 25);
-        console.error('Error displaying history:', error);
-        // sendResponse({ success: false, error });
       }
     })();
   }
