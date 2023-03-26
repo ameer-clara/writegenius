@@ -22,32 +22,53 @@
             <label for="temperature">Temperature:</label>
             <input type="range" id="temperature" min="0" max="1" step="0.01" value="0.7">
             <input type="number" id="temperature-number" min="0" max="1" step="0.01" value="0.7">
+            <br />
+            Controls randomness: Lowering results in less random completions. As the temperature approaches zero, the
+            model will become deterministic and repetitive.
         </div>
         <div>
             <label for="max-length">Maximum length:</label>
             <input type="range" id="max-length" min="1" max="2048" step="1" value="256">
             <input type="number" id="max-length-number" min="1" max="2048" step="1" value="256">
+            <br />
+            The maximum number of tokens to <strong>generate</strong>. Requests can use up to 2,048 or 4,000 tokens
+            shared between prompt
+            and completion. The exact limit varies by model. (One token is roughly 4 characters for normal English text)
         </div>
         <div>
             <label for="top-p">Top P:</label>
             <input type="range" id="top-p" min="0" max="1" step="0.01" value="1">
             <input type="number" id="top-p-number" min="0" max="1" step="0.01" value="1">
+            <br />
+            Controls diversity via nucleus sampling:
+            0.5 means half of all likelihood-weighted options are considered.
         </div>
         <div>
             <label for="frequency-penalty">Frequency penalty:</label>
             <input type="range" id="frequency-penalty" min="0" max="2" step="0.01" value="0">
             <input type="number" id="frequency-penalty-number" min="0" max="2" step="0.01" value="0">
+            <br />
+            How much to penalize new tokens based on their existing frequency in the text so far. Decreases the model's
+            likelihood to repeat the same line verbatim.
         </div>
         <div>
             <label for="presence-penalty">Presence penalty:</label>
             <input type="range" id="presence-penalty" min="0" max="2" step="0.01" value="0">
             <input type="number" id="presence-penalty-number" min="0" max="2" step="0.01" value="0">
+            <br />
+            How much to penalize new tokens based on whether they appear in the text so far. Increases the model's
+            likelihood to talk about new topics.
         </div>
         <div>
             <label for="api-key">OpenAI API Key:</label>
             <input class="api-key" type="text" id="api-key">
+            <br />
+            <a href="https://platform.openai.com/account/api-keys" target="_blank">Get your API key</a> and paste it
+            here, this is required for the plugin to work.
         </div>
         <button id="save-settings">Save Settings</button>
+        <button id="reset-to-defaults">Reset to Default Values</button>
+
     </div>
     <script src="settings.js"></script>
 </body>

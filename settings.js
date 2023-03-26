@@ -54,6 +54,34 @@ loadSettings().then((settings) => {
   document.getElementById('presence-penalty-number').value = settings.presencePenalty;
 });
 
+function resetToDefaultValues() {
+  console.log('setting reset to default values');
+  saveSettings({
+    model: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    maxLength: 256,
+    topP: 1,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+  }).then(() => {
+    // Update input fields to show the default values
+    document.getElementById('model').value = 'gpt-3.5-turbo';
+    document.getElementById('temperature').value = 0.7;
+    document.getElementById('temperature-number').value = 0.7;
+    document.getElementById('max-length').value = 256;
+    document.getElementById('max-length-number').value = 256;
+    document.getElementById('top-p').value = 1;
+    document.getElementById('top-p-number').value = 1;
+    document.getElementById('frequency-penalty').value = 0;
+    document.getElementById('frequency-penalty-number').value = 0;
+    document.getElementById('presence-penalty').value = 0;
+    document.getElementById('presence-penalty-number').value = 0;
+    alert('Settings reset to default values.');
+  });
+}
+
+document.getElementById('reset-to-defaults').addEventListener('click', resetToDefaultValues);
+
 function syncInputValues(rangeInput, numberInput) {
   rangeInput.addEventListener('input', () => {
     numberInput.value = rangeInput.value;
