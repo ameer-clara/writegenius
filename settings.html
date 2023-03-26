@@ -12,6 +12,13 @@
     <h1>Settings</h1>
     <div class="settings-container">
         <div>
+            <label for="api-key">OpenAI API Key:</label>
+            <input class="api-key" type="text" id="api-key">
+            <br />
+            <a href="https://platform.openai.com/account/api-keys" target="_blank">Get your API key</a> and paste it
+            here, this is required for the plugin to work.
+        </div>
+        <div>
             <label for="model">Model:</label>
             <select id="model">
                 <option value="gpt-4">GPT-4</option>
@@ -58,13 +65,6 @@
             <br />
             How much to penalize new tokens based on whether they appear in the text so far. Increases the model's
             likelihood to talk about new topics.
-        </div>
-        <div>
-            <label for="api-key">OpenAI API Key:</label>
-            <input class="api-key" type="text" id="api-key">
-            <br />
-            <a href="https://platform.openai.com/account/api-keys" target="_blank">Get your API key</a> and paste it
-            here, this is required for the plugin to work.
         </div>
         <button id="save-settings">Save Settings</button>
         <button id="reset-to-defaults">Reset to Default Values</button>
