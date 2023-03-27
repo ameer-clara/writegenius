@@ -1,7 +1,7 @@
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'chrome-chatgpt',
-    title: 'ChatGPT',
+    title: 'WriteGenius',
     contexts: ['selection'],
   });
 
@@ -14,7 +14,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
   chrome.contextMenus.create({
     parentId: 'chrome-chatgpt',
-    id: 'rephrase with Monty Python humor:',
+    id: 'rephrase with humor:',
     title: 'Reprhase (funny)',
     contexts: ['selection'],
   });

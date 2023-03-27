@@ -1,4 +1,4 @@
-# writegenius
+# WriteGenius
 
 Authored by gpt-3.5-turbo/gpt-4 with the assistance of a human
 
@@ -16,11 +16,13 @@ A Chrome extension that uses OpenAI to assist users with their writing tasks. Th
 
 5. After installing the extension, make sure to pin it to your Chrome toolbar for easy access. To do this, click the puzzle piece icon in the toolbar, find the OpenAI Writing Companion extension, and click the pin icon next to it.
 
-6. Visit the Settings page of the extension by clicking on the extension icon in the toolbar and then clicking the "Settings" button. Add your OpenAI API key and customize the other available settings.
+6. Visit the Settings page of the extension by clicking on the extension icon in the toolbar and then clicking the "Settings" button. Add your OpenAI API key. If you don't have one, you can create a new API key by visting [OpenAI](https://platform.openai.com/account/api-keys){:target="\_blank"}. This is required for the plugin to work.
+
+7. Customize other available settings if needed.
 
 ## Usage
 
-To use the extension, simply select the text you want to work with, right-click, and choose one of the following options from the context menu:
+To use the extension, simply select the text you want to work with, right-click, and choose one of the following options from the context menu of WriteGenius:
 
 - **Rephrase**: Reword the selected text while retaining its original meaning.
 - **Summarize**: Condense the selected text into a shorter version.
