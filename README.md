@@ -1,6 +1,6 @@
 # WriteGenius
 
-Authored by gpt-3.5-turbo/gpt-4 with the assistance of a human
+Authored by gpt-3.5-turbo/gpt-4 with the assistance of a human.
 
 A Chrome extension that uses OpenAI to assist users with their writing tasks. The extension offers three main features: rephrase, summarize, and prompt based on the selected text.
 

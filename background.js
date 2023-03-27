@@ -1,4 +1,5 @@
 chrome.runtime.onInstalled.addListener(() => {
+  // updated context menu
   chrome.contextMenus.create({
     id: 'chrome-chatgpt',
     title: 'WriteGenius',
