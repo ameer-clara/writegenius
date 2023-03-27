@@ -2,11 +2,11 @@
 
 Authored by gpt-3.5-turbo/gpt-4 with the assistance of a human.
 
-A Chrome extension that uses OpenAI to assist users with their writing tasks. The extension offers three main features: rephrase, summarize, and prompt based on the selected text.
+A Chrome extension that uses OpenAI to assist users with their writing tasks. The extension offers three main features: rephrase, summarize, and prompt based on the selected text in Gmail.
 
 ## Installation
 
-1. Download the latest release of the extension from the repository and unzip the archive.
+1. Download the latest release of the extension from the repository (<> Code -> Download Zip) and unzip the archive.
 
 2. In Chrome, go to `chrome://extensions` or open the Extensions page from the Chrome menu.
 
@@ -14,9 +14,9 @@ A Chrome extension that uses OpenAI to assist users with their writing tasks. Th
 
 4. Click the "Load unpacked" button that appears, and then select the unzipped folder of the extension.
 
-5. After installing the extension, make sure to pin it to your Chrome toolbar for easy access. To do this, click the puzzle piece icon in the toolbar, find the OpenAI Writing Companion extension, and click the pin icon next to it.
+5. After installing the extension, make sure to pin it to your Chrome toolbar for easy access. To do this, click the puzzle piece icon in the toolbar, find the WriteGenius extension (![WriteGenius](https://raw.githubusercontent.com/ameer-clara/writegenius/main/assets/search.png "WriteGenius") magnifying glass icon), and click the pin icon next to it.
 
-6. Visit the Settings page of the extension by clicking on the extension icon in the toolbar and then clicking the "Settings" button. Add your OpenAI API key. If you don't have one, you can create a new API key by visting [OpenAI](https://platform.openai.com/account/api-keys) and selecting Create a new secret key. This is required for the plugin to work.
+6. Visit the Settings page of the extension by clicking on the extension icon in the toolbar and then clicking the "Settings" button. Add your OpenAI API key. If you don't have one, you can create a new API key by visting [OpenAI](https://platform.openai.com/account/api-keys) and selecting "Create a new secret key". This is required for the plugin to work.
 
 7. Customize other available settings if needed.
 
