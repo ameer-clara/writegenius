@@ -1,3 +1,7 @@
+.openai-generated-text {
+  font-weight: bold;
+}
+
 .openai-floating-window {
   position: absolute;
   z-index: 1000;
@@ -5,21 +9,24 @@
   border: 1px solid #ccc;
   padding: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.openai-generated-text {
-  font-weight: bold;
+  width: 50%; /* updated */
+  height: 20%; /* updated */
+  min-width: 200px; /* added */
+  min-height: 200px; /* added */
+  display: flex;
+  flex-direction: column;
+  resize: both; /* added */
+  overflow: auto; /* added */
 }
 
 .openai-floating-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: bold;
   font-size: 1.2em;
-  padding-top: 5px;
-  border-top: 1px solid #ccc;
-  margin-top: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 5px;
 }
 
 .openai-floating-close {

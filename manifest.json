@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "OpenAI Chrome Extension",
+    "name": "WriteGenius",
     "version": "1.0",
     "description": "Select text, send it to OpenAI, and display the result in a floating window.",
     "permissions": [

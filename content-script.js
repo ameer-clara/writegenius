@@ -103,17 +103,21 @@ async function saveResponse(promptText, selectedPromptType, responseText, model,
   });
 }
 
-function createFloatingWindow(content, error = false) {
+function createFloatingWindow(content, error = false, loading = false) {
   const floatingWindow = document.createElement('div');
   floatingWindow.classList.add('openai-floating-window');
   floatingWindow.innerHTML = `
-  <div class="openai-floating-body">
-    <div class="openai-generated-text">${content}</div>
-  </div>
   <div class="openai-floating-header">
-  <span>${error ? '' : "<button id='openai-floating-replace'>Replace Selected Text</button>"}
+    <span>WritingGenius</span>
     <span class="openai-floating-close">x</span>
   </div>
+  <div class="openai-floating-body">
+  ${loading ? '<div class="openai-loading-icon">Loading...</div>' : ''}
+    <div class="openai-generated-text">${content}</div>
+  </div>
+  <hr>
+  <span>${error ? '' : "<button id='openai-floating-replace'>Replace Selected Text</button>"}
+  ${loading ? "<button id='openai-floating-cancel'>Cancel</button>" : ''}
   `;
 
   document.body.appendChild(floatingWindow);
@@ -280,10 +284,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       for (let i = 0; i < selection.rangeCount; i++) {
         storedRanges.push(selection.getRangeAt(i));
       }
+
+      // Show the loading icon
+      const loadingWindow = createFloatingWindow('', true, true);
+      const { x, y } = storedRanges[0].getBoundingClientRect();
+      positionFloatingWindow(loadingWindow, x, y + 25);
+
       try {
         const settings = await loadSettings();
         // console.log('settings: ' + JSON.stringify(settings));
         const result = await processTextWithOpenAI(settings, request.selectionText, request.menuItemId);
+        removeFloatingWindow(loadingWindow); // Remove the loading window
         promptType = request.menuItemId;
         const formattedResult = formatResponseToHtml(result);
         const floatingWindow = createFloatingWindow(formattedResult);
@@ -293,9 +304,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (typeof error === 'object') {
           error = JSON.stringify(error);
         }
-        const floatingWindow = createFloatingWindow(error, true);
-        const { x, y } = storedRanges[0].getBoundingClientRect();
-        positionFloatingWindow(floatingWindow, x, y + 25);
+        removeFloatingWindow(loadingWindow); // Remove the loading window
+        const errorWindow = createFloatingWindow('Error: ' + error, true);
+        positionFloatingWindow(errorWindow, x, y + 25);
       }
     })();
   }
