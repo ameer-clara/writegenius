@@ -109,6 +109,8 @@ function createFloatingWindow(content, error = false, loading = false) {
   floatingWindow.innerHTML = `
   <div class="openai-floating-header">
     <span>WritingGenius</span>
+    <span class="openai-timer"></span>
+    <div class="openai-busy-message"></div>
     <span class="openai-floating-close">x</span>
   </div>
   <div class="openai-floating-body">
@@ -121,6 +123,13 @@ function createFloatingWindow(content, error = false, loading = false) {
   `;
 
   document.body.appendChild(floatingWindow);
+
+  if (loading) {
+    const cancelButton = floatingWindow.querySelector('#openai-floating-cancel');
+    cancelButton.addEventListener('click', () => {
+      removeFloatingWindow(floatingWindow);
+    });
+  }
 
   const closeIcon = floatingWindow.querySelector('.openai-floating-close');
   closeIcon.addEventListener('click', () => {
@@ -255,7 +264,6 @@ async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, to
       return result;
     }
   } catch (error) {
-    // console.error('Error calling OpenAI:', error);
     throw error;
   }
 }
@@ -290,10 +298,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const { x, y } = storedRanges[0].getBoundingClientRect();
       positionFloatingWindow(loadingWindow, x, y + 25);
 
+      // Timer and message elements
+      const timerElement = loadingWindow.querySelector('.openai-timer');
+      const busyMessageElement = loadingWindow.querySelector('.openai-busy-message');
+
+      let timerSeconds = 0;
+      const updateTimer = () => {
+        timerElement.textContent = `${timerSeconds}s`;
+        if (timerSeconds >= 5) {
+          timerElement.style.color = 'red';
+          busyMessageElement.textContent = 'OpenAI servers busy... please wait';
+        }
+        timerSeconds++;
+      };
+
+      const timerInterval = setInterval(updateTimer, 1000);
+
+      const cancelRequest = new Promise((_, reject) => {
+        // Add a click event listener to the cancel button to cancel the fetch request
+        const cancelButton = loadingWindow.querySelector('#openai-floating-cancel');
+        cancelButton.addEventListener('click', () => {
+          clearInterval(timerInterval);
+          reject(new Error('Cancelled'));
+        });
+      });
+
       try {
         const settings = await loadSettings();
         // console.log('settings: ' + JSON.stringify(settings));
-        const result = await processTextWithOpenAI(settings, request.selectionText, request.menuItemId);
+        const result = await Promise.race([processTextWithOpenAI(settings, request.selectionText, request.menuItemId), cancelRequest]);
+
+        clearInterval(timerInterval);
+
         removeFloatingWindow(loadingWindow); // Remove the loading window
         promptType = request.menuItemId;
         const formattedResult = formatResponseToHtml(result);
@@ -301,13 +337,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const { x, y } = storedRanges[0].getBoundingClientRect();
         positionFloatingWindow(floatingWindow, x, y + 25);
       } catch (error) {
-        if (typeof error === 'object') {
-          error = JSON.stringify(error);
+        clearInterval(timerInterval);
+        if (error.message === 'Cancelled') {
+          console.log('Fetch request cancelled');
+        } else {
+          if (typeof error === 'object') {
+            error = JSON.stringify(error);
+          }
+          removeFloatingWindow(loadingWindow); // Remove the loading window
+          const errorWindow = createFloatingWindow('Error: ' + error, true);
+          positionFloatingWindow(errorWindow, x, y + 25);
         }
-        removeFloatingWindow(loadingWindow); // Remove the loading window
-        const errorWindow = createFloatingWindow('Error: ' + error, true);
-        positionFloatingWindow(errorWindow, x, y + 25);
       }
+
+      // Add a click event listener to the cancel button to abort the fetch request
+      const cancelButton = loadingWindow.querySelector('#openai-floating-cancel');
+      cancelButton.addEventListener('click', () => {
+        // Dispatch the custom abortRequest event
+        loadingWindow.dispatchEvent(new CustomEvent('abortRequest'));
+        removeFloatingWindow(loadingWindow);
+      });
     })();
   }
 });

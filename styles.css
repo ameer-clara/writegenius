@@ -19,6 +19,15 @@
   overflow: auto; /* added */
 }
 
+.openai-timer {
+  font-size: 0.6em;
+}
+
+.openai-busy-message {
+  font-size: 0.6em;
+  color: red;
+}
+
 .openai-floating-header {
   display: flex;
   justify-content: space-between;
