@@ -16,7 +16,7 @@ A Chrome extension that uses OpenAI to assist users with their writing tasks. Th
 
 5. After installing the extension, make sure to pin it to your Chrome toolbar for easy access. To do this, click the puzzle piece icon in the toolbar, find the OpenAI Writing Companion extension, and click the pin icon next to it.
 
-6. Visit the Settings page of the extension by clicking on the extension icon in the toolbar and then clicking the "Settings" button. Add your OpenAI API key. If you don't have one, you can create a new API key by visting [OpenAI](https://platform.openai.com/account/api-keys){:target="\_blank"}. This is required for the plugin to work.
+6. Visit the Settings page of the extension by clicking on the extension icon in the toolbar and then clicking the "Settings" button. Add your OpenAI API key. If you don't have one, you can create a new API key by visting [OpenAI](https://platform.openai.com/account/api-keys) and selecting Create a new secret key. This is required for the plugin to work.
 
 7. Customize other available settings if needed.
 
