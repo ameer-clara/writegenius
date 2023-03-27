@@ -9,7 +9,7 @@
   border: 1px solid #ccc;
   padding: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 50%; /* updated */
+  width: 30%; /* updated */
   height: 20%; /* updated */
   min-width: 200px; /* added */
   min-height: 200px; /* added */
