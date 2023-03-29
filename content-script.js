@@ -108,7 +108,7 @@ function createFloatingWindow(content, error = false, loading = false) {
   floatingWindow.classList.add('openai-floating-window');
   floatingWindow.innerHTML = `
   <div class="openai-floating-header">
-    <span>WritingGenius</span>
+    <span>WriteGenius</span>
     <span class="openai-timer"></span>
     <div class="openai-busy-message"></div>
     <span class="openai-floating-close">x</span>
@@ -289,10 +289,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       const selection = window.getSelection();
       storedRanges = [];
-      for (let i = 0; i < selection.rangeCount; i++) {
-        storedRanges.push(selection.getRangeAt(i));
-      }
 
+      if (selection.rangeCount > 0) {
+        for (let i = 0; i < selection.rangeCount; i++) {
+          storedRanges.push(selection.getRangeAt(i));
+        }
+      } else {
+        // Fallback to create a range from the selected text
+        const textarea = document.createElement('textarea');
+        textarea.value = request.selectionText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        const range = document.createRange();
+        range.selectNodeContents(textarea);
+        storedRanges.push(range);
+        document.body.removeChild(textarea);
+      }
       // Show the loading icon
       const loadingWindow = createFloatingWindow('', true, true);
       const { x, y } = storedRanges[0].getBoundingClientRect();
