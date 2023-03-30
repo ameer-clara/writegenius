@@ -1,7 +1,6 @@
 const OPEN_API_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 
 let storedRanges = null;
-let promptType = null;
 
 async function displayHistory() {
   const db = await openDatabase();
@@ -34,10 +33,10 @@ async function displayHistory() {
 async function openDatabase() {
   return new Promise((resolve, reject) => {
     const openRequest = indexedDB.open('openai_responses', 1);
-
     openRequest.onupgradeneeded = () => {
       const db = openRequest.result;
       db.createObjectStore('responses', { keyPath: 'id', autoIncrement: true });
+      db.createObjectStore('settings', { keyPath: 'key' });
     };
 
     openRequest.onsuccess = () => {
@@ -73,32 +72,90 @@ function loadSettings() {
   }
 }
 
-async function saveResponse(promptText, selectedPromptType, responseText, model, temperature, maxLength, topP, frequencyPenalty, presencePenalty) {
+async function saveResponse(promptText, selectedPromptType, responseText, model, temperature, maxLength, topP, frequencyPenalty, presencePenalty, usage, messages) {
   const db = await openDatabase();
-  const transaction = db.transaction('responses', 'readwrite');
-  const responsesStore = transaction.objectStore('responses');
-  const responseObj = {
-    model: model,
-    temperature: temperature,
-    maxLength: maxLength,
-    topP: topP,
-    frequencyPenalty: frequencyPenalty,
-    presencePenalty: presencePenalty,
-    prompt: promptText,
-    promptType: selectedPromptType,
-    response: responseText,
-    timestamp: new Date(),
-  };
+  // Update the total usage cost
+  const usageCost = (usage.total_tokens / 1000) * 0.002;
+  const newTotalUsageCost = (await getTotalUsageCost()) + usageCost;
+  await updateTotalUsageCost(newTotalUsageCost);
 
   return new Promise((resolve, reject) => {
-    const saveRequest = responsesStore.add(responseObj);
+    const transaction = db.transaction('responses', 'readwrite');
+    const responsesStore = transaction.objectStore('responses');
+    const responseObj = {
+      model: model,
+      temperature: temperature,
+      maxLength: maxLength,
+      topP: topP,
+      frequencyPenalty: frequencyPenalty,
+      presencePenalty: presencePenalty,
+      prompt: promptText,
+      promptType: selectedPromptType,
+      response: responseText,
+      usage: usage,
+      messages: messages,
+      timestamp: new Date(),
+    };
 
+    const saveRequest = responsesStore.add(responseObj);
     saveRequest.onsuccess = () => {
       resolve(saveRequest.result);
     };
-
     saveRequest.onerror = () => {
       reject(saveRequest.error);
+    };
+  });
+}
+
+async function getLastConversation() {
+  const db = await openDatabase();
+  const transaction = db.transaction('responses', 'readonly');
+  const responsesStore = transaction.objectStore('responses');
+  const getRequest = responsesStore.openCursor(null, 'prev');
+
+  return new Promise((resolve, reject) => {
+    getRequest.onsuccess = () => {
+      if (getRequest.result) {
+        resolve(getRequest.result.value);
+      } else {
+        resolve(null);
+      }
+    };
+    getRequest.onerror = () => {
+      reject(getRequest.error);
+    };
+  });
+}
+
+async function getTotalUsageCost() {
+  const db = await openDatabase();
+  const transaction = db.transaction('settings', 'readonly');
+  const settingsStore = transaction.objectStore('settings');
+  const getRequest = settingsStore.get('totalUsageCost');
+
+  return new Promise((resolve, reject) => {
+    getRequest.onsuccess = () => {
+      resolve(getRequest.result ? getRequest.result.value : 0);
+    };
+
+    getRequest.onerror = () => {
+      reject(getRequest.error);
+    };
+  });
+}
+
+async function updateTotalUsageCost(newTotalUsageCost) {
+  const db = await openDatabase();
+  const transaction = db.transaction('settings', 'readwrite');
+  const settingsStore = transaction.objectStore('settings');
+  const putRequest = settingsStore.put({ key: 'totalUsageCost', value: newTotalUsageCost });
+
+  return new Promise((resolve, reject) => {
+    putRequest.onsuccess = () => {
+      resolve(putRequest.result);
+    };
+    putRequest.onerror = () => {
+      reject(putRequest.error);
     };
   });
 }
@@ -232,9 +289,34 @@ function formatResponseToHtml(text) {
   return text.replace(/\n/g, '<br>');
 }
 
-async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, topP, frequencyPenalty, presencePenalty }, text, selectedPromptType) {
+async function showConfirmDialog(tokensUsed, costUsed, tokensEstimate, costEstimate) {
+  const message = `
+    Tokens used so far: ${tokensUsed}
+    Cost so far: $${costUsed.toFixed(4)}
+
+    Estimated new tokens: ${tokensEstimate}
+    Estimated new cost: $${costEstimate.toFixed(4)}
+
+    Do you want to continue the conversation?
+  `;
+
+  return new Promise((resolve) => {
+    const userResponse = confirm(message);
+    resolve(userResponse);
+  });
+}
+
+async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, topP, frequencyPenalty, presencePenalty, continueConversation }, text, selectedPromptType) {
   console.log('calling openai: ' + selectedPromptType + text);
   try {
+    let messages = [{ role: 'user', content: selectedPromptType + text }];
+
+    if (continueConversation) {
+      const lastConversation = await getLastConversation();
+      console.log('lastConversation: ', lastConversation);
+      messages = lastConversation ? [...lastConversation.messages, ...messages] : messages;
+    }
+
     const response = await fetch(OPEN_API_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -243,7 +325,7 @@ async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, to
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'user', content: selectedPromptType + text }],
+        messages,
         max_tokens: maxLength,
         temperature,
         top_p: topP,
@@ -258,14 +340,33 @@ async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, to
     } else {
       console.log('openai response: ', data);
       const result = data.choices[0].message.content;
+      const usage = data.usage;
+      messages.push({ role: 'assistant', content: result });
 
-      // Save the response along with the prompt text and timestamp
-      await saveResponse(text, selectedPromptType, result, model, temperature, maxLength, topP, frequencyPenalty, presencePenalty);
+      // Save the response along with the prompt text, usage, and timestamp
+      await saveResponse(text, selectedPromptType, result, model, temperature, maxLength, topP, frequencyPenalty, presencePenalty, usage, messages);
       return result;
     }
   } catch (error) {
     throw error;
   }
+}
+
+function estimateTokenUsage(conversation) {
+  const promptTokens = conversation.reduce((acc, message) => {
+    return acc + message.content.length;
+  }, 0);
+
+  // Estimate completion tokens based on the length of the user's last message
+  const completionTokens = Math.floor(conversation[conversation.length - 1].content.length * 1.5);
+
+  const totalTokens = promptTokens + completionTokens;
+
+  return {
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    total_tokens: totalTokens,
+  };
 }
 
 // Content script code
@@ -287,6 +388,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'contextMenu') {
     (async () => {
+      const continueConversation = request.menuItemId === 'continue';
       const selection = window.getSelection();
       storedRanges = [];
 
@@ -337,18 +439,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       try {
         const settings = await loadSettings();
-        // console.log('settings: ' + JSON.stringify(settings));
-        const result = await Promise.race([processTextWithOpenAI(settings, request.selectionText, request.menuItemId), cancelRequest]);
-
+        const result = await Promise.race([processTextWithOpenAI({ ...settings, continueConversation }, request.selectionText, continueConversation ? '' : request.menuItemId), cancelRequest]);
         clearInterval(timerInterval);
-
         removeFloatingWindow(loadingWindow); // Remove the loading window
-        promptType = request.menuItemId;
         const formattedResult = formatResponseToHtml(result);
         const floatingWindow = createFloatingWindow(formattedResult);
         const { x, y } = storedRanges[0].getBoundingClientRect();
         positionFloatingWindow(floatingWindow, x, y + 25);
       } catch (error) {
+        console.error('Error:', error);
         clearInterval(timerInterval);
         if (error.message === 'Cancelled') {
           console.log('Fetch request cancelled');

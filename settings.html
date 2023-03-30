@@ -68,7 +68,35 @@
         </div>
         <button id="save-settings">Save Settings</button>
         <button id="reset-to-defaults">Reset to Default Values</button>
-
+        <div id="existing-context-menu-items">
+            <h3>Existing Context Menu Items</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Parent ID</th>
+                        <th>Title</th>
+                        <th>Position</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="context-menu-items-tbody">
+                    <!-- Existing context menu items will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+        <div id="custom-context-menu">
+            <h3>Create Custom Context Menu Item</h3>
+            <label for="menu-id">ID:</label>
+            <input type="text" id="menu-id">
+            <label for="menu-parent-id">Parent ID:</label>
+            <input type="text" id="menu-parent-id">
+            <label for="menu-title">Title:</label>
+            <input type="text" id="menu-title">
+            <label for="menu-position">Position:</label>
+            <input type="number" id="menu-position">
+            <button id="create-menu-item">Create Menu Item</button>
+        </div>
     </div>
     <script src="settings.js"></script>
 </body>
