@@ -76,10 +76,11 @@ function loadSettings() {
 
 async function saveResponse(promptText, selectedPromptType, responseText, model, temperature, maxLength, topP, frequencyPenalty, presencePenalty, usage, messages) {
   const db = await openDatabase();
+  // TODO - disabled for now, investigate, one of the specified object stores was not found.
   // Update the total usage cost
-  const usageCost = (usage.total_tokens / 1000) * 0.002;
-  const newTotalUsageCost = (await getTotalUsageCost()) + usageCost;
-  await updateTotalUsageCost(newTotalUsageCost);
+  // const usageCost = (usage.total_tokens / 1000) * 0.002;
+  // const newTotalUsageCost = (await getTotalUsageCost()) + usageCost;
+  // await updateTotalUsageCost(newTotalUsageCost);
 
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('responses', 'readwrite');
