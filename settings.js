@@ -98,11 +98,11 @@ syncInputValues(document.getElementById('top-p'), document.getElementById('top-p
 syncInputValues(document.getElementById('frequency-penalty'), document.getElementById('frequency-penalty-number'));
 syncInputValues(document.getElementById('presence-penalty'), document.getElementById('presence-penalty-number'));
 
-function createCustomContextMenuItem(id, parentId, title, position) {
+function createCustomContextMenuItem(id, title) {
   return new Promise((resolve) => {
     chrome.storage.sync.get('customContextMenuItems', ({ customContextMenuItems }) => {
       customContextMenuItems = customContextMenuItems || [];
-      customContextMenuItems.push({ id, parentId, title, position });
+      customContextMenuItems.push({ id, title });
       chrome.storage.sync.set({ customContextMenuItems }, resolve);
     });
   });
@@ -123,13 +123,11 @@ function loadExistingContextMenuItems() {
       const tbody = document.getElementById('context-menu-items-tbody');
       tbody.innerHTML = '';
 
-      customContextMenuItems.forEach(({ id, parentId, title, position }, index) => {
+      customContextMenuItems.forEach(({ id, title }, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${id}</td>
-            <td>${parentId || '-'}</td>
-            <td>${title}</td>
-            <td>${position || '-'}</td>
+        <td>${title}</td>
+        <td>${id}</td>
             <td><button class="delete-menu-item" data-index="${index}">-</button></td> <!-- Add this line -->
           `;
         tbody.appendChild(tr);
@@ -139,12 +137,10 @@ function loadExistingContextMenuItems() {
 }
 
 document.getElementById('create-menu-item').addEventListener('click', () => {
-  const id = document.getElementById('menu-id').value;
-  const parentId = document.getElementById('menu-parent-id').value || null;
+  const id = document.getElementById('menu-id').value + ' : ';
   const title = document.getElementById('menu-title').value;
-  const position = parseInt(document.getElementById('menu-position').value, 10) || null;
 
-  createCustomContextMenuItem(id, parentId, title, position).then(() => {
+  createCustomContextMenuItem(id, title).then(() => {
     alert('Custom context menu item created successfully.');
     loadExistingContextMenuItems();
   });

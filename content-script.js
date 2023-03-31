@@ -17,11 +17,13 @@ async function displayHistory() {
       responses.forEach((response) => {
         const timestamp = new Date(response.timestamp).toLocaleString();
         historyHtml += `<div class="history-item">
-                          <p><strong>Prompt Type:</strong> ${response.promptType}</p>
+        ${response.promptType.length > 0 ? `<p><strong>Prompt Type:</strong> ${response.promptType}</p>` : ''}
                           <p><strong>Prompt:</strong> ${response.prompt}</p>
                           <p><strong>Response:</strong> ${response.response}</p>
                           <p><strong>Timestamp:</strong> ${timestamp}</p>
-                          <p><strong>Model:</strong> ${response.model} | <strong>Temperature:</strong> ${response.temperature} | <strong>Max Tokens:</strong> ${response.maxLength} | <strong>Top P:</strong> ${response.topP} | <strong>Frequency penalty:</strong> ${response.frequencyPenalty} | <strong>Presence penalty:</strong> ${response.presencePenalty} |  </p>
+                          <p><strong>Model:</strong> ${response.model} | <strong>Temperature:</strong> ${response.temperature} | <strong>Max Tokens:</strong> ${response.maxLength} | <strong>Top P:</strong> ${
+          response.topP
+        } | <strong>Frequency penalty:</strong> ${response.frequencyPenalty} | <strong>Presence penalty:</strong> ${response.presencePenalty} </p>
                         </div>`;
       });
 
