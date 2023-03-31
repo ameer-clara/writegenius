@@ -98,11 +98,11 @@ syncInputValues(document.getElementById('top-p'), document.getElementById('top-p
 syncInputValues(document.getElementById('frequency-penalty'), document.getElementById('frequency-penalty-number'));
 syncInputValues(document.getElementById('presence-penalty'), document.getElementById('presence-penalty-number'));
 
-function createCustomContextMenuItem(id, title) {
+function createCustomContextMenuItem(id, formattedContent, title) {
   return new Promise((resolve) => {
     chrome.storage.sync.get('customContextMenuItems', ({ customContextMenuItems }) => {
       customContextMenuItems = customContextMenuItems || [];
-      customContextMenuItems.push({ id, title });
+      customContextMenuItems.push({ id, formattedContent, title });
       chrome.storage.sync.set({ customContextMenuItems }, resolve);
     });
   });
@@ -119,28 +119,43 @@ function deleteCustomContextMenuItem(index) {
 
 function loadExistingContextMenuItems() {
   chrome.storage.sync.get('customContextMenuItems', ({ customContextMenuItems }) => {
-    if (customContextMenuItems) {
-      const tbody = document.getElementById('context-menu-items-tbody');
-      tbody.innerHTML = '';
+    const tbody = document.getElementById('context-menu-items-tbody');
+    tbody.innerHTML = '';
 
-      customContextMenuItems.forEach(({ id, title }, index) => {
+    if (customContextMenuItems && customContextMenuItems.length > 0) {
+      document.getElementById('existing-context-menu-items').style.display = 'block';
+
+      customContextMenuItems.forEach(({ formattedContent, title }, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-        <td>${title}</td>
-        <td>${id}</td>
-            <td><button class="delete-menu-item" data-index="${index}">-</button></td> <!-- Add this line -->
+          <td class="column-title">${title}</td>
+          <td class="column-id">${formattedContent}</td>
+          <td class="column-delete"><button class="delete-menu-item" data-index="${index}">Delete</button></td>
           `;
         tbody.appendChild(tr);
       });
+    } else {
+      document.getElementById('existing-context-menu-items').style.display = 'none';
     }
   });
 }
 
 document.getElementById('create-menu-item').addEventListener('click', () => {
-  const id = document.getElementById('menu-id').value + ' : ';
+  //   let id = document.getElementById('menu-id').value;
+  let id = document.getElementById('menu-id').innerText;
+  const formattedContent = document.getElementById('menu-id').innerHTML;
   const title = document.getElementById('menu-title').value;
 
-  createCustomContextMenuItem(id, title).then(() => {
+  console.log('prompt: ', id);
+  console.log('formatted prompt: ', formattedContent);
+
+  if (!id || !title) {
+    alert('Title and Prompt are required fields.');
+    return;
+  }
+  id += ':';
+
+  createCustomContextMenuItem(id, formattedContent, title).then(() => {
     alert('Custom context menu item created successfully.');
     loadExistingContextMenuItems();
   });
@@ -153,7 +168,6 @@ document.getElementById('context-menu-items-tbody').addEventListener('click', (e
 
     if (confirmDelete) {
       deleteCustomContextMenuItem(index).then(() => {
-        alert('Context menu item deleted successfully.');
         loadExistingContextMenuItems();
       });
     }
