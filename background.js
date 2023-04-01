@@ -1,7 +1,16 @@
+importScripts('mixpanel.js');
+
 const extensionName = 'WriteGenius';
 const extensionSysName = 'Core';
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason === 'install') {
+    const location = await getIP();
+    mixpanel.track('Install', {
+      ip: location.ip,
+    });
+  }
+
   chrome.contextMenus.create({
     id: 'chrome-chatgpt',
     title: extensionName,
@@ -88,6 +97,16 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+chrome.contextMenus.onClicked.addListener((info, tabs) => {
+  const e = info.menuItemId.length > 0 ? info.menuItemId : 'Prompt';
+  mixpanel.track(e, {
+    url: info.pageUrl,
+  });
+
+  info.type = 'contextMenu';
+  chrome.tabs.sendMessage(tabs.id, info);
+});
+
 function updateRootContextMenu(title) {
   chrome.contextMenus.update('chrome-chatgpt', {
     title: title,
@@ -113,14 +132,6 @@ function isCustomMenuVisibile(isTrue) {
     chrome.contextMenus.remove('chrome-chatgpt-custom');
   }
 }
-
-chrome.contextMenus.onClicked.addListener((info, tabs) => {
-  if (info.menuItemId === 'chrome-chatgpt') {
-    return;
-  }
-  info.type = 'contextMenu';
-  chrome.tabs.sendMessage(tabs.id, info);
-});
 
 function createCustomContextMenuItems(items) {
   items.forEach(({ id, title }) => {
@@ -150,8 +161,13 @@ function getFirstDiff(array1, array2) {
   return array2.find((item2) => !array1.some((item1) => compareById(item1, item2)));
 }
 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'trackEvent') {
+    mixpanel.track(request.eventName, request.eventProperties);
+  }
+});
+
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  console.log('onChanged', changes, areaName);
   if (areaName === 'sync' && changes.customContextMenuItems) {
     let item = {};
     const newValues = changes.customContextMenuItems.newValue;
@@ -174,3 +190,21 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     }
   }
 });
+
+async function getIP() {
+  try {
+    const response = await fetch('http://ip-api.com/json/');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return {
+      ip: data.query,
+    };
+  } catch (error) {
+    console.error('Error fetching location data:', error);
+    return {
+      ip: '0.0.0.0',
+    };
+  }
+}

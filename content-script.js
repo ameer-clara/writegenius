@@ -225,6 +225,11 @@ function createFloatingWindow(content, error = false, loading = false) {
     const replaceButton = floatingWindow.querySelector('#openai-floating-replace');
 
     replaceButton.addEventListener('click', () => {
+      chrome.runtime.sendMessage({
+        type: 'trackEvent',
+        eventName: 'Replace Text',
+      });
+
       if (storedRanges) {
         const selection = window.getSelection();
         selection.removeAllRanges();
@@ -310,6 +315,8 @@ async function showConfirmDialog(tokensUsed, costUsed, tokensEstimate, costEstim
 }
 
 async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, topP, frequencyPenalty, presencePenalty, continueConversation }, text, selectedPromptType) {
+  const startTime = performance.now();
+
   console.log('calling openai: ' + selectedPromptType + text);
   try {
     let messages = [{ role: 'user', content: selectedPromptType + text }];
@@ -337,6 +344,9 @@ async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, to
       }),
     });
 
+    const endTime = performance.now();
+    const elapsedTime = endTime - startTime;
+
     const data = await response.json(); // Return the generated text
     if (data.error) {
       throw data.error;
@@ -346,11 +356,39 @@ async function processTextWithOpenAI({ model, apiKey, temperature, maxLength, to
       const usage = data.usage;
       messages.push({ role: 'assistant', content: result });
 
+      chrome.runtime.sendMessage({
+        type: 'trackEvent',
+        eventName: 'API success',
+        eventProperties: {
+          model,
+          temperature,
+          maxLength,
+          topP,
+          frequencyPenalty,
+          presencePenalty,
+          elapsedTime,
+          usage,
+        },
+      });
+
       // Save the response along with the prompt text, usage, and timestamp
       await saveResponse(text, selectedPromptType, result, model, temperature, maxLength, topP, frequencyPenalty, presencePenalty, usage, messages);
       return result;
     }
   } catch (error) {
+    chrome.runtime.sendMessage({
+      type: 'trackEvent',
+      eventName: 'API fail',
+      eventProperties: {
+        error,
+        model,
+        temperature,
+        maxLength,
+        topP,
+        frequencyPenalty,
+        presencePenalty,
+      },
+    });
     throw error;
   }
 }
@@ -377,6 +415,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'getHistory') {
     (async () => {
       try {
+        chrome.runtime.sendMessage({
+          type: 'trackEvent',
+          eventName: 'View History',
+        });
+
         const historyHtml = await displayHistory();
         sendResponse({ success: true, historyHtml });
       } catch (error) {
@@ -391,6 +434,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'contextMenu') {
     (async () => {
+      const settings = await loadSettings();
+      if (settings.apiKey === '') {
+        alert('Please set your OpenAI API key by clicking on the WriteGenius icon and the settings button (top right of your browser)');
+
+        chrome.runtime.sendMessage({
+          type: 'trackEvent',
+          eventName: 'API key not set',
+        });
+
+        return;
+      }
       const continueConversation = request.menuItemId === 'continue';
       const selection = window.getSelection();
       storedRanges = [];
@@ -441,7 +495,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
 
       try {
-        const settings = await loadSettings();
         const result = await Promise.race([processTextWithOpenAI({ ...settings, continueConversation }, request.selectionText, continueConversation ? '' : request.menuItemId), cancelRequest]);
         clearInterval(timerInterval);
         removeFloatingWindow(loadingWindow); // Remove the loading window
@@ -450,7 +503,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const { x, y } = storedRanges[0].getBoundingClientRect();
         positionFloatingWindow(floatingWindow, x, y + 25);
       } catch (error) {
-        console.error('Error:', error);
+        // console.error('Error:', error);
         clearInterval(timerInterval);
         if (error.message === 'Cancelled') {
           console.log('Fetch request cancelled');
