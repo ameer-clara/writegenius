@@ -11,6 +11,30 @@
 <body>
     <h1>Settings</h1>
     <div class="settings-container">
+        <div id="existing-context-menu-items">
+            <h3>Custom Context Menu Item(s)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Prompt</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="context-menu-items-tbody">
+                    <!-- Existing context menu items will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+        <div id="custom-context-menu">
+            <h3>Create Custom Context Menu Item</h3>
+            <label for="menu-title">Title:</label>
+            <input type="text" id="menu-title" required>
+            <label for="menu-id">Prompt:</label>
+            <div id="menu-id" contenteditable="true" class="editable-prompt"></div>
+            <!-- <textarea id="menu-id" rows="4" cols="50" required></textarea> -->
+            <button id="create-menu-item">Create Menu Item</button>
+        </div>
         <div>
             <label for="api-key">OpenAI API Key:</label>
             <input class="api-key" type="text" id="api-key">
@@ -68,30 +92,6 @@
         </div>
         <button id="save-settings">Save Settings</button>
         <button id="reset-to-defaults">Reset to Default Values</button>
-        <div id="existing-context-menu-items">
-            <h3>Custom Context Menu Item(s)</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Prompt</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="context-menu-items-tbody">
-                    <!-- Existing context menu items will be loaded here -->
-                </tbody>
-            </table>
-        </div>
-        <div id="custom-context-menu">
-            <h3>Create Custom Context Menu Item</h3>
-            <label for="menu-title">Title:</label>
-            <input type="text" id="menu-title" required>
-            <label for="menu-id">Prompt:</label>
-            <div id="menu-id" contenteditable="true" class="editable-prompt"></div>
-            <!-- <textarea id="menu-id" rows="4" cols="50" required></textarea> -->
-            <button id="create-menu-item">Create Menu Item</button>
-        </div>
     </div>
     <script src="settings.js"></script>
 </body>
